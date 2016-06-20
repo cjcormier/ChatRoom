@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from socket import *  # import *, but we'll avoid name conflict
 import sys
 import cmd

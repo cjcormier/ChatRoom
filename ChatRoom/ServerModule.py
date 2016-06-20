@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from socket import *
 import select
 
@@ -28,11 +28,14 @@ class ChatServer:
                         self.server_broadcast(message, skip=[client])
                     else:
                         client.close()
-                        print('Attempted Connection at {0}\n no username, disconnecting'.format(address))
+                        print('Attempted Connection at {0}'.format(address))
+                        print('No username, disconnecting.')
                 else:
                     data = connection.recv(2 ** 16)
                     if data:
-                        print('[{0}] {1}'.format(self.ACTIVE_SOCKETS[connection], data.decode().strip()))
+                        message = data.decode().strip()
+                        name = self.ACTIVE_SOCKETS[connection]
+                        print('[{0}] {1}'.format(name, message))
                         self.user_broadcast(data.decode(), connection)
                     else:
                         self.disconnect(connection)
@@ -47,7 +50,7 @@ class ChatServer:
         connection.close()
         if connection in self.ACTIVE_SOCKETS:
             name = self.ACTIVE_SOCKETS.pop(connection)
-            message = '{} had disconnected'.format(name)
+            message = '{} has disconnected'.format(name)
             print(message)
             self.server_broadcast(message)
 
