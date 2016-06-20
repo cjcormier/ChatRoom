@@ -14,40 +14,49 @@ class ChatServer:
         print('Server started on port {0}'.format(port))
 
     def loop(self):
-        read, write, err = select.select(list(self.ACTIVE_SOCKETS), [], [], 0)
+        to_read = list(self.ACTIVE_SOCKETS).append(sys.stdin)
+        read, write, err = select.select(to_read, [], [], 0)
         for connection in read:
+            if connection is sys.stdin:
+                continue
             try:
                 if connection is self.server_sock:
-                    client, address = connection.accept()
-                    read1, write1, err1 = select.select([client], [], [], 0)
-                    if client in read1:
-                        username = client.recv(2 ** 16).decode().strip()
-                        self.ACTIVE_SOCKETS[client] = username
-                        print('Connection at {0} as {1}'.format(address, username))
-                        message = 'User, {0}, has connected'.format(username)
-                        self.server_broadcast(message, skip=[client])
-                    else:
-                        client.close()
-                        print('Attempted Connection at {0}'.format(address))
-                        print('No username, disconnecting.')
+                    self.accept_connection(connection)
                 else:
-                    data = connection.recv(2 ** 16)
-                    if data:
-                        message = data.decode().strip()
-                        name = self.ACTIVE_SOCKETS[connection]
-                        print('[{0}] {1}'.format(name, message))
-                        self.user_broadcast(data.decode(), connection)
-                    else:
-                        self.disconnect(connection)
+                    self.read_message(connection)
             except ConnectionResetError:
-                if connection in self.ACTIVE_SOCKETS:
-                    name = self.ACTIVE_SOCKETS.pop(connection)
-                    message = '{} has disconnected'.format(name)
-                    print(message)
-                    self.server_broadcast(message)
+                print('Connection Reset')
+                self.disconnect_message(connection)
+
+    def accept_connection(self, connection):
+        client, address = connection.accept()
+        read1, write1, err1 = select.select([client], [], [], 0)
+        if client in read1:
+            username = client.recv(2 ** 16).decode().strip()
+            self.ACTIVE_SOCKETS[client] = username
+            print('Connection at {0} as {1}'.format(address, username))
+            message = 'User, {0}, has connected'.format(username)
+            self.server_broadcast(message, skip=[client])
+        else:
+            client.close()
+            print('Attempted Connection at {0}'.format(address))
+            print('No username, disconnecting.')
+
+    def read_message(self, connection):
+        data = connection.recv(2 ** 16)
+        if data:
+            message = data.decode().strip()
+            name = self.ACTIVE_SOCKETS[connection]
+            print('[{0}] {1}'.format(name, message))
+            self.user_broadcast(data.decode(), connection)
+        else:
+            self.disconnect(connection)
 
     def disconnect(self, connection):
         connection.close()
+        self.disconnect_message(connection)
+
+    def disconnect_message(self, connection):
         if connection in self.ACTIVE_SOCKETS:
             name = self.ACTIVE_SOCKETS.pop(connection)
             message = '{} has disconnected'.format(name)
