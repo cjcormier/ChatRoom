@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse
-from ChatRoom.ServerModule import ChatServer
+from ChatRoom.ServerModule import *
 import sys
 # import logging
 
@@ -12,9 +12,5 @@ args = parser.parse_args()
 server = ChatServer(args.port)
 
 
-def main():
-    while True:
-        server.loop()
-
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(ChatServerCMD(server).cmdloop())

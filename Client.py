@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 
-from ChatRoom.ClientModule import ChatClient
+from ChatRoom.ClientModule import *
 
 parser = argparse.ArgumentParser(description='Chat room client')
 parser.add_argument('--server', help='ip of the chat room server')
@@ -28,7 +28,7 @@ if args.username:
 else:
     username = input('Username:').strip()
 
-if __name__ == '__main__':
-    ChatClient(server, port, username).loop()
+client = ChatClient(server, port, username)
 
-print("Client Closing")
+if __name__ == '__main__':
+    sys.exit(ChatClientCMD(client).cmdloop())

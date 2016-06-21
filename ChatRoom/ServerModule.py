@@ -4,6 +4,7 @@ import readline
 import select
 import sys
 import threading
+import time
 from socket import *
 
 
@@ -16,11 +17,14 @@ class ChatServerCMD(cmd.Cmd):
     def __init__(self, chat_server):
         cmd.Cmd.__init__(self)
         self.chat_server = chat_server
-        self.receiveThread = CheckSocketsThread(self, self.chat_server)
+        self.receive_thread = CheckSocketsThread(self, self.chat_server)
+        
+    def postcmd(self, line, stop):
+        print(line)
 
     def preloop(self):
         self.done = False
-        self.receiveThread.run()
+        self.receive_thread.start()
 
     def postloop(self):
         self.done = True
@@ -33,12 +37,17 @@ class CheckSocketsThread(threading.Thread):
         self.server_cmd = server_cmd
 
     def run(self):
+        first = True
         while not self.server_cmd.done:
             temp = readline.get_line_buffer()
             sys.stdout.write('\r'+' '*(len(temp)+2)+'\r')
             self.server.check_sockets()
-            sys.stdout.write(temp)
+            if first:
+                first = False
+            else:
+                sys.stdout.write('> '+temp)
             sys.stdout.flush()
+            time.sleep(.1)
 
 
 class ChatServer:
@@ -68,7 +77,7 @@ class ChatServer:
 
     def accept_connection(self, connection):
         client, address = connection.accept()
-        read1, write1, err1 = select.select([client], [], [], 0)
+        read1, write1, err1 = select.select([client], [], [], .1)
         if client in read1:
             username = client.recv(2 ** 16).decode().strip()
             self.ACTIVE_SOCKETS[client] = username
@@ -108,13 +117,14 @@ class ChatServer:
         send_data(data, recipients)
 
     def user_broadcast(self, message, sender_sock):
-        data = generate_message_data(message, 'user_broadcast', self.ACTIVE_SOCKETS[sender_sock])
-        recipients = [x for x in self.ACTIVE_SOCKETS if x not in [self.server_sock, sender_sock]]
+        name = self.ACTIVE_SOCKETS[sender_sock]
+        skip = [self.server_sock, sender_sock]
+        data = generate_message_data(message, 'user_broadcast', name)
+        recipients = [x for x in self.ACTIVE_SOCKETS if x not in skip]
         send_data(data, recipients)
 
 
 def send_data(data, recipients):
-    print(recipients)
     if data is not None:
         for connection in recipients:
             connection.send(data)

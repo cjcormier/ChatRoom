@@ -9,7 +9,7 @@ from socket import *  # import *, but we'll avoid name conflict
 
 class ChatClientCMD(cmd.Cmd):
     intro = 'Welcome to the chat client.'
-    prompt = '[Me]'
+    prompt = '[Me] '
     file = None
     done = True
 
@@ -17,7 +17,7 @@ class ChatClientCMD(cmd.Cmd):
         cmd.Cmd.__init__(self)
 
         self.chat_client = chat_client
-        self.receiveThread = ReceiveThread(self, self.chat_client)
+        self.receive_thread = ReceiveThread(self, self.chat_client)
 
     def default(self, line):
         pass
@@ -26,14 +26,15 @@ class ChatClientCMD(cmd.Cmd):
         self.chat_client.send_message(line)
 
     def precmd(self, line):
-        if line[1] == '\\':
+        if line[0] == '\\':
             line = line[1:]
         else:
-            line = 'message' + line
+            line = 'message ' + line
         return line
 
     def preloop(self):
         self.done = False
+        self.receive_thread.start()
 
     def postloop(self):
         self.done = True
@@ -47,12 +48,12 @@ class ReceiveThread(threading.Thread):
 
     def run(self):
         while not self.cmd.done:
-            message = self.client.receive_message
+            message = self.client.receive_message()
             if message:
                 temp = readline.get_line_buffer()
                 sys.stdout.write('\r'+' '*(len(temp)+4)+'\r')
                 print(message)
-                sys.stdout.write(temp)
+                sys.stdout.write('[Me] '+temp)
                 sys.stdout.flush()
 
 
@@ -80,17 +81,4 @@ class ChatClient:
     def receive_message(self):
         read, write, err = select.select([self.sock], [], [], 0)
         if self.sock in read:
-            return self.sock.recv(2 ** 16).strip()
-
-    def loop(self):
-        while True:
-            sys.stdout.write('[Me] ')
-            sys.stdout.flush()
-
-            message = sys.stdin.readline().strip()
-            self.send_message(message)
-
-            message = self.receive_message()
-            if message:
-                sys.stdout.write(message.decode()+'\n')
-                sys.stdout.flush()
+            return self.sock.recv(2 ** 16).strip().decode()
