@@ -23,6 +23,10 @@ class ChatClientCMD(cmd.Cmd):
         self.client = ChatClient(server, port, username)
         self.receiveThread = ReceiveThread(self, self.client)
 
+    def post_cmd(self):
+        input = self.client.check()
+        self.cmdqueue.append(input)
+
     def default(self, message):
         self.client.send_message(message)
         self.receiveThread.run()
@@ -55,6 +59,16 @@ class ChatClient:
         self.sock = socket(AF_INET, SOCK_STREAM)
         self.sock.connect((server, port))
         self.sock.send(username.encode())
+
+    def check(self):
+        to_read = list(self.sock).append(sys.stdin)
+        read, write, err = select.select(to_read, [], [], 0)
+        for connection in read:
+            if connection is sys.stdin:
+                return sys.stdin.readline
+            else:
+                self.receive_message()
+                return ''
 
     def send_message(self, message):
         message_len = self.sock.send(message.encode())
