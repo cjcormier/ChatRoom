@@ -1,7 +1,45 @@
 #!/usr/bin/env python3
-from socket import *
+import cmd
+import readline
 import select
 import sys
+import threading
+from socket import *
+
+
+class ChatServerCMD(cmd.Cmd):
+    intro = 'Welcome to the chat client.'
+    prompt = '> '
+    file = None
+    done = True
+
+    def __init__(self, chat_server):
+        cmd.Cmd.__init__(self)
+        self.chat_server = chat_server
+        self.receiveThread = CheckSocketsThread(self, self.chat_server)
+
+    def preloop(self):
+        self.done = False
+        self.receiveThread.run()
+
+    def postloop(self):
+        self.done = True
+
+
+class CheckSocketsThread(threading.Thread):
+    def __init__(self, server_cmd, chat_server):
+        threading.Thread.__init__(self)
+        self.server = chat_server
+        self.server_cmd = server_cmd
+
+    def run(self):
+        while not self.server_cmd.done:
+            temp = readline.get_line_buffer()
+            sys.stdout.write('\r'+' '*(len(temp)+2)+'\r')
+            self.server.check_sockets()
+            sys.stdout.write(temp)
+            sys.stdout.flush()
+
 
 class ChatServer:
     def __init__(self, port):
@@ -13,8 +51,8 @@ class ChatServer:
         self.ACTIVE_SOCKETS = {self.server_sock: 'Server'}
         print('Server started on port {0}'.format(port))
 
-    def loop(self):
-        to_read = list(self.ACTIVE_SOCKETS)+[sys.stdin]
+    def check_sockets(self):
+        to_read = list(self.ACTIVE_SOCKETS)
         read, write, err = select.select(to_read, [], [], 0)
         for connection in read:
             if connection is sys.stdin:

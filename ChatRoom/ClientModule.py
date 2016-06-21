@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-from socket import *  # import *, but we'll avoid name conflict
-import sys
 import cmd
-import threading
-
+import readline
 import select
+import sys
+import threading
+from socket import *  # import *, but we'll avoid name conflict
 
 
 class ChatClientCMD(cmd.Cmd):
@@ -13,26 +13,24 @@ class ChatClientCMD(cmd.Cmd):
     file = None
     done = True
 
-    def __init__(self, server, port, username):
+    def __init__(self, chat_client):
         cmd.Cmd.__init__(self)
 
-        # self.server = server
-        # self.port = port
-        # self.username = username
+        self.chat_client = chat_client
+        self.receiveThread = ReceiveThread(self, self.chat_client)
 
-        self.client = ChatClient(server, port, username)
-        self.receiveThread = ReceiveThread(self, self.client)
+    def default(self, line):
+        pass
 
-    def post_cmd(self):
-        input = self.client.check()
-        self.cmdqueue.append(input)
+    def do_message(self, line):
+        self.chat_client.send_message(line)
 
-    def default(self, message):
-        self.client.send_message(message)
-        self.receiveThread.run()
-
-    def do_shell(self, arg):
-        print(arg)
+    def precmd(self, line):
+        if line[1] == '\\':
+            line = line[1:]
+        else:
+            line = 'message' + line
+        return line
 
     def preloop(self):
         self.done = False
@@ -48,10 +46,14 @@ class ReceiveThread(threading.Thread):
         self.client = chat_client
 
     def run(self):
-        while not self.cmd.run:
+        while not self.cmd.done:
             message = self.client.receive_message
-            print(message)
-        print('Tread done')
+            if message:
+                temp = readline.get_line_buffer()
+                sys.stdout.write('\r'+' '*(len(temp)+4)+'\r')
+                print(message)
+                sys.stdout.write(temp)
+                sys.stdout.flush()
 
 
 class ChatClient:
@@ -61,14 +63,13 @@ class ChatClient:
         self.sock.send(username.encode())
 
     def check(self):
-        to_read = list(self.sock).append(sys.stdin)
+        to_read = list(sys.stdin)
         read, write, err = select.select(to_read, [], [], 0)
-        for connection in read:
-            if connection is sys.stdin:
-                return sys.stdin.readline
-            else:
-                self.receive_message()
-                return ''
+        if sys.stdin in read:
+            return sys.stdin.readline
+        else:
+            self.receive_message()
+            return ''
 
     def send_message(self, message):
         message_len = self.sock.send(message.encode())
