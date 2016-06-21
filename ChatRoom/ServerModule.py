@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from socket import *
 import select
-
+import sys
 
 class ChatServer:
     def __init__(self, port):
@@ -14,7 +14,7 @@ class ChatServer:
         print('Server started on port {0}'.format(port))
 
     def loop(self):
-        to_read = list(self.ACTIVE_SOCKETS).append(sys.stdin)
+        to_read = list(self.ACTIVE_SOCKETS)+[sys.stdin]
         read, write, err = select.select(to_read, [], [], 0)
         for connection in read:
             if connection is sys.stdin:
