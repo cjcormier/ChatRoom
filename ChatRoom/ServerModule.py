@@ -18,7 +18,7 @@ class ChatServerCMD(cmd.Cmd):
         cmd.Cmd.__init__(self)
         self.chat_server = chat_server
         self.receive_thread = CheckSocketsThread(self, self.chat_server)
-        
+
     def postcmd(self, line, stop):
         print(line)
 
@@ -40,12 +40,12 @@ class CheckSocketsThread(threading.Thread):
         first = True
         while not self.server_cmd.done:
             temp = readline.get_line_buffer()
-            sys.stdout.write('\r'+' '*(len(temp)+2)+'\r')
+            sys.stdout.write('\r' + ' ' * (len(temp) + 2) + '\r')
             self.server.check_sockets()
             if first:
                 first = False
             else:
-                sys.stdout.write('> '+temp)
+                sys.stdout.write('> ' + temp)
             sys.stdout.flush()
             time.sleep(.1)
 
@@ -92,10 +92,17 @@ class ChatServer:
     def read_message(self, connection):
         data = connection.recv(2 ** 16)
         if data:
-            message = data.decode().strip()
+            split = data.decode().strip().split(sep=None, maxsplit=1)
             name = self.ACTIVE_SOCKETS[connection]
-            print('[{0}] {1}'.format(name, message))
-            self.user_broadcast(data.decode(), connection)
+            tag = split[0]
+            message = split[1]
+            if tag == 'message':
+                print('[{0}] {1}'.format(name, message))
+                self.user_message(data.decode(), connection)
+            if tag == 'username ':
+                pass
+                # TODO: finish server username response
+
         else:
             self.disconnect(connection)
 
@@ -116,10 +123,10 @@ class ChatServer:
         recipients = [x for x in self.ACTIVE_SOCKETS if x not in skip]
         send_data(data, recipients)
 
-    def user_broadcast(self, message, sender_sock):
+    def user_message(self, message, sender_sock):
         name = self.ACTIVE_SOCKETS[sender_sock]
         skip = [self.server_sock, sender_sock]
-        data = generate_message_data(message, 'user_broadcast', name)
+        data = generate_message_data(message, 'user_message', name)
         recipients = [x for x in self.ACTIVE_SOCKETS if x not in skip]
         send_data(data, recipients)
 
@@ -130,8 +137,10 @@ def send_data(data, recipients):
             connection.send(data)
 
 
-def generate_message_data(message, message_type, sender=None):
-    if message_type == 'user_broadcast':
-        return '[{0}] {1}\n'.format(sender, message).encode()
+def generate_message_data(message, message_type, sender=None, *args):
+    if message_type == 'user_message':
+        return 'message {0} {1}\n'.format(sender, message).encode()
     elif message_type == 'server_broadcast':
-        return '{0}\n'.format(message).encode()
+        return 'broadcast {0}\n'.format(message).encode()
+    elif message_type == 'username':
+        return 'username {0} {1}\n'.format(args[0], message).encode()

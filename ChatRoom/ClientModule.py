@@ -19,11 +19,13 @@ class ChatClientCMD(cmd.Cmd):
         self.chat_client = chat_client
         self.receive_thread = ReceiveThread(self, self.chat_client)
 
-    def default(self, line):
-        pass
-
     def do_message(self, line):
-        self.chat_client.send_message(line)
+        tag = 'message '.encode()
+        self.chat_client.send_message(tag+line)
+
+    def do_listusers(self, line):
+        tag = 'username '.encode()
+        self.chat_client.send_message(tag+line)
 
     def precmd(self, line):
         if line[0] == '\\':
@@ -50,11 +52,34 @@ class ReceiveThread(threading.Thread):
         while not self.cmd.done:
             message = self.client.receive_message()
             if message:
-                temp = readline.get_line_buffer()
-                sys.stdout.write('\r'+' '*(len(temp)+4)+'\r')
-                print(message)
-                sys.stdout.write('[Me] '+temp)
-                sys.stdout.flush()
+                split = message.strip().split(sep=None, maxsplit=1)
+                tag = split[0]
+                message = split[1]
+                if tag == 'message':
+                    split = message.strip().split(sep=None, maxsplit=1)
+                    message = '[{0}] says: {1}\n'.format(split[0], split[1])
+                    self.post_message(message)
+                if tag == 'username':
+                    split = message.strip().split()
+                    extras = int(split[0])
+                    usernames = split[1:]
+                    if extras > 1:
+                        message = ', '.join(usernames[:-1])
+                        message_format = 'The connected users are {0}, and {1}.\n'
+                        message = message_format.format(message, usernames[-1])
+                    else:
+                        message = ', '.join(usernames)
+                        message_format = 'The connected users are {0}, and {1} more.\n'
+                        message = message_format.format(message, usernames[-1])
+                    self.post_message(message)
+
+    @staticmethod
+    def post_message(message):
+        temp = readline.get_line_buffer()
+        sys.stdout.write('\r'+' '*(len(temp)+5)+'\r')
+        print(message)
+        sys.stdout.write('[Me] '+temp)
+        sys.stdout.flush()
 
 
 class ChatClient:
