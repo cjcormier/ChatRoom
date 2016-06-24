@@ -21,11 +21,11 @@ class ChatClientCMD(cmd.Cmd):
 
     def do_message(self, line):
         message = 'message ' + line
-        self.chat_client.send_message(message.encode())
+        self.chat_client.send_message(message)
 
     def do_listusers(self, line):
         message = 'username ' + line
-        self.chat_client.send_message(message.encode())
+        self.chat_client.send_message(message)
 
     def precmd(self, line):
         if line[0] == '\\':
@@ -59,11 +59,11 @@ class ReceiveThread(threading.Thread):
                     split = message.strip().split(sep=None, maxsplit=1)
                     message = '[{0}] says: {1}\n'.format(split[0], split[1])
                     self.post_message(message)
-                if tag == 'username':
+                elif tag == 'username':
                     split = message.strip().split()
                     extras = int(split[0])
                     usernames = split[1:]
-                    if extras > 1:
+                    if extras == 0:
                         message = ', '.join(usernames[:-1])
                         message_format = 'The connected users are {0}, and {1}.\n'
                         message = message_format.format(message, usernames[-1])
@@ -72,12 +72,20 @@ class ReceiveThread(threading.Thread):
                         message_format = 'The connected users are {0}, and {1} more.\n'
                         message = message_format.format(message, usernames[-1])
                     self.post_message(message)
+                elif tag == 'disconnection':
+                    message_format = '{0} has disconnected.\n'
+                    message = message_format.format(message)
+                    self.post_message(message)
+                elif tag == 'connection': 
+                    message_format = '{0} has connected.\n'
+                    message = message_format.format(message)
+                    self.post_message(message)
 
     @staticmethod
     def post_message(message):
         temp = readline.get_line_buffer()
         sys.stdout.write('\r'+' '*(len(temp)+5)+'\r')
-        print(message)
+        sys.stdout.write(message)
         sys.stdout.write('[Me] '+temp)
         sys.stdout.flush()
 

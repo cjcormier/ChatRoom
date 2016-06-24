@@ -82,7 +82,7 @@ class ChatServer:
             username = client.recv(2 ** 16).decode().strip()
             self.ACTIVE_SOCKETS[client] = username
             print('Connection at {0} as {1}'.format(address, username))
-            message = 'User, {0}, has connected'.format(username)
+            message = 'connection {0}'.format(username)
             self.server_broadcast(message, skip=[client])
         else:
             client.close()
@@ -92,14 +92,20 @@ class ChatServer:
     def read_message(self, connection):
         data = connection.recv(2 ** 16)
         if data:
-            split = data.decode().strip().split(sep=None, maxsplit=1)
             name = self.ACTIVE_SOCKETS[connection]
+            message = data.decode().strip()
+            
+            split = message.split(sep=None, maxsplit=1)
             tag = split[0]
-            message = split[1]
-            print('[{0}] {1}'.format(name, message))
+            message = ''
+            if len(split) > 1:
+                message = split[1]
+                
+            print('[{0}] <{1}> {2}'.format(name, tag, message))
+                
             if tag == 'message':
                 self.user_message(message, connection)
-            if tag == 'username':
+            elif tag == 'username':
                 self.username_request(connection)
 
         else:
@@ -112,7 +118,7 @@ class ChatServer:
     def disconnect_message(self, connection):
         if connection in self.ACTIVE_SOCKETS:
             name = self.ACTIVE_SOCKETS.pop(connection)
-            message = '{} has disconnected'.format(name)
+            message = 'disconnection {0}'.format(name)
             print(message)
             self.server_broadcast(message)
 
@@ -130,13 +136,14 @@ class ChatServer:
         send_data(data, recipients)
 
     def username_request(self, sender_sock):
-        user_list = list(self.ACTIVE_SOCKETS.keys())
+        user_list = list(self.ACTIVE_SOCKETS.values())
+        user_list.remove('Server')
         user_list_len = len(user_list)
         user_list = user_list[:10]
         len_diff = user_list_len - len(user_list)
         message = ' '.join(user_list)
         data = generate_message_data(message, 'username', None, len_diff)
-        send_data(data, sender_sock)
+        send_data(data, [sender_sock])
 
 
 def send_data(data, recipients):
@@ -147,8 +154,8 @@ def send_data(data, recipients):
 
 def generate_message_data(message, message_type, sender=None, *args):
     if message_type == 'user_message':
-        return 'message {0} {1}\n'.format(sender, message).encode()
+        return 'message {0} {1}'.format(sender, message).encode()
     elif message_type == 'server_broadcast':
-        return 'broadcast {0}\n'.format(message).encode()
+        return '{0}'.format(message).encode()
     elif message_type == 'username':
-        return 'username {0} {1}\n'.format(args[0], message).encode()
+        return 'username {0} {1}'.format(args[0], message).encode()
