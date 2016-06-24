@@ -96,12 +96,11 @@ class ChatServer:
             name = self.ACTIVE_SOCKETS[connection]
             tag = split[0]
             message = split[1]
+            print('[{0}] {1}'.format(name, message))
             if tag == 'message':
-                print('[{0}] {1}'.format(name, message))
-                self.user_message(data.decode(), connection)
-            if tag == 'username ':
-                pass
-                # TODO: finish server username response
+                self.user_message(message, connection)
+            if tag == 'username':
+                self.username_request(connection)
 
         else:
             self.disconnect(connection)
@@ -129,6 +128,15 @@ class ChatServer:
         data = generate_message_data(message, 'user_message', name)
         recipients = [x for x in self.ACTIVE_SOCKETS if x not in skip]
         send_data(data, recipients)
+
+    def username_request(self, sender_sock):
+        user_list = list(self.ACTIVE_SOCKETS.keys())
+        user_list_len = len(user_list)
+        user_list = user_list[:10]
+        len_diff = user_list_len - len(user_list)
+        message = ' '.join(user_list)
+        data = generate_message_data(message, 'username', sender=None, len_diff)
+        send_data(data, sender_sock)
 
 
 def send_data(data, recipients):

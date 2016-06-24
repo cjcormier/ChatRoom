@@ -20,12 +20,12 @@ class ChatClientCMD(cmd.Cmd):
         self.receive_thread = ReceiveThread(self, self.chat_client)
 
     def do_message(self, line):
-        tag = 'message '.encode()
-        self.chat_client.send_message(tag+line)
+        message = 'message ' + line
+        self.chat_client.send_message(message.encode())
 
     def do_listusers(self, line):
-        tag = 'username '.encode()
-        self.chat_client.send_message(tag+line)
+        message = 'username ' + line
+        self.chat_client.send_message(message.encode())
 
     def precmd(self, line):
         if line[0] == '\\':
