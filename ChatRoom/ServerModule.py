@@ -19,18 +19,15 @@ class ChatServerCMD(cmd.Cmd):
         self.chat_server = chat_server
         self.receive_thread = CheckSocketsThread(self, self.chat_server)
 
-    def do_close(self):
+    def do_close(self, line):
+        self.done = True
+        print('Closing Server')
         self.chat_server.close()
-
-    def postcmd(self, line, stop):
-        pass
+        return True
 
     def preloop(self):
         self.done = False
         self.receive_thread.start()
-
-    def postloop(self):
-        self.done = True
 
 
 class CheckSocketsThread(threading.Thread):
@@ -64,10 +61,10 @@ class ChatServer:
         print('Server started on port {0}'.format(port))
 
     def close(self):
+        message = 'shutdown'
         for connection in self.ACTIVE_SOCKETS:
             if connection is not self.server_sock:
-                message = 'shutdown'
-                send_data(message.encode(),connection)
+                send_data(message.encode(), [connection])
             self.disconnect(connection, suppress=True)
 
     def check_sockets(self):
@@ -163,6 +160,7 @@ class ChatServer:
 
 
 def send_data(data, recipients):
+    print(data.decode())
     if data is not None:
         for connection in recipients:
             connection.send(data)

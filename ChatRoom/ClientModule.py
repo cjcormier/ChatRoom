@@ -26,12 +26,12 @@ class ChatClientCMD(cmd.Cmd):
 
     @staticmethod
     def no_server():
-        message = 'You are not connected to a server, use "\\connect" to connect to one.'
+        message = 'You are not connected to a server, use "\\connect" to connect to one.\n'
         post_message(message)
 
     @staticmethod
     def yes_server():
-        message = 'You are already connected to a server, use "\\help" to to list commands.'
+        message = 'You are already connected to a server, use "\\help" to to list commands.\n'
         post_message(message)
 
     def do_message(self, line):
@@ -54,23 +54,26 @@ class ChatClientCMD(cmd.Cmd):
             self.connect = True
             self.receive_thread = ReceiveThread(self, self.chat_client)
             time.sleep(.1)
+            self.receive_thread.start()
         else:
             self.yes_server()
 
     def do_disconnect(self, line):
         if self.connect:
-            self.chat_client.disconnect()
             self.connect = False
+            time.sleep(.1)
+            self.chat_client.disconnect()
         else:
             self.no_server()
 
     def do_close(self, line):
         if self.connect:
-            self.chat_client.disconnect()
             self.connect = False
+            time.sleep(.1)
+            self.chat_client.disconnect()
             return True
         else:
-            self.no_server()
+            return True
 
     def do_server(self, line):
         if not self.connect:
@@ -82,19 +85,19 @@ class ChatClientCMD(cmd.Cmd):
     def do_port(self, line):
         if not self.connect:
             split = line.split()
-            self.server = split[0]
+            self.port = split[0]
         else:
             self.yes_server()
 
     def do_username(self, line):
         if not self.connect:
             split = line.split()
-            self.server = split[0]
+            self.username = split[0]
         else:
             self.yes_server()
 
     def precmd(self, line):
-        if line[0] == '\\':
+        if line and line[0] == '\\':
             line = line[1:]
         else:
             line = 'message ' + line
@@ -102,9 +105,6 @@ class ChatClientCMD(cmd.Cmd):
 
     def preloop(self):
         self.do_connect(None)
-
-    def postloop(self):
-        pass
 
 
 class ReceiveThread(threading.Thread):
@@ -118,7 +118,9 @@ class ReceiveThread(threading.Thread):
             message = self.client.receive_message()
             if message:
                 tag, message = split_message(message)
-                if tag == 'message':
+                if tag == 'no_message':
+                    pass
+                elif tag == 'message':
                     tag, message = split_message(message)
                     post_message(message)
                 elif tag == 'username':
@@ -134,8 +136,13 @@ class ReceiveThread(threading.Thread):
                 elif tag == 'error':
                     self.error_message(message)
                 elif tag == 'shutdown':
-                    self.client.close()
+                    post_message('Server had shutdown.\n')
+                    self.client.disconnect()
                     self.cmd.connect = False
+            else:
+                self.client.disconnect()
+                self.cmd.connect = False
+                post_message('Lost connection to server.\n')
 
     @staticmethod
     def username_list(message):
@@ -204,6 +211,8 @@ class ChatClient:
         read, write, err = select.select([self.sock], [], [], 0)
         if self.sock in read:
             return self.sock.recv(2 ** 16).strip().decode()
+        else:
+            return 'no_message'
 
     def disconnect(self):
         self.sock.close()
