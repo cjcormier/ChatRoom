@@ -101,7 +101,7 @@ class ChatClientCMD(cmd.Cmd):
         return line
 
     def preloop(self):
-        self.do_connect()
+        self.do_connect(None)
 
     def postloop(self):
         pass
