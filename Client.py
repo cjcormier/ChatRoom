@@ -28,7 +28,10 @@ if args.username:
 else:
     username = input('Username:').strip()
 
-client = ChatClient(server, port, username)
+
+def main():
+    ChatClientCMD(server, port, username).cmdloop()
 
 if __name__ == '__main__':
-    sys.exit(ChatClientCMD(client).cmdloop())
+    sys.exit(main())
+
