@@ -174,4 +174,4 @@ def generate_message_data(message, message_type, sender=None, *args):
     elif message_type == 'username':
         return 'username {0} {1}'.format(args[0], message).encode()
     elif message_type == 'user_taken':
-        return 'error {0}'.format(message)
+        return 'error {0}'.format(message).encode()

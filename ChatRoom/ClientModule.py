@@ -25,13 +25,19 @@ class ChatClientCMD(cmd.Cmd):
         self.connect = False
 
     @staticmethod
-    def no_server():
-        message = 'You are not connected to a server, use "\\connect" to connect to one.\n'
+    def no_server(verbose=True):
+        message = 'You are not connected to a server.'
+        if verbose:
+            message += 'Use "\\connect" to connect to one or "\\help" to to list commands'
+        message += '\n'
         post_message(message)
 
     @staticmethod
-    def yes_server():
-        message = 'You are already connected to a server, use "\\help" to to list commands.\n'
+    def yes_server(verbose=True):
+        message = 'You are already connected to a server.'
+        if verbose:
+            message += 'Use "\\disconnect" to disconnect or "\\help" to to list commands.'
+        message += '\n'
         post_message(message)
 
     def do_message(self, line):
@@ -82,10 +88,14 @@ class ChatClientCMD(cmd.Cmd):
         else:
             self.yes_server()
 
+    def do_serverinfo(self,line):
+        message = 'Connected to {0}:{1} as {2}'.format(self.server, self.port, self.username)
+        post_message(message)
+
     def do_port(self, line):
         if not self.connect:
             split = line.split()
-            self.port = split[0]
+            self.port = int(split[0])
         else:
             self.yes_server()
 
@@ -121,7 +131,9 @@ class ReceiveThread(threading.Thread):
                 if tag == 'no_message':
                     pass
                 elif tag == 'message':
-                    tag, message = split_message(message)
+                    username, message = split_message(message)
+                    message_format = '[{0}] said: {1}\n'
+                    message = message_format.format(username, message)
                     post_message(message)
                 elif tag == 'username':
                     self.username_list(message)
@@ -168,6 +180,7 @@ class ReceiveThread(threading.Thread):
             message = 'Username {0} already taken, ust "\\username" to choose a new one'
             message.format(self.cmd.username)
             post_message(message)
+
 
 
 def split_message(message):
