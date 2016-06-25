@@ -59,7 +59,6 @@ class ChatClientCMD(cmd.Cmd):
             self.chat_client = ChatClient(self.server, self.port, self.username)
             self.connect = True
             self.receive_thread = ReceiveThread(self, self.chat_client)
-            time.sleep(.1)
             self.receive_thread.start()
         else:
             self.yes_server()
@@ -89,7 +88,7 @@ class ChatClientCMD(cmd.Cmd):
             self.yes_server()
 
     def do_serverinfo(self,line):
-        message = 'Connected to {0}:{1} as {2}'.format(self.server, self.port, self.username)
+        message = 'Connected to {0}:{1} as {2}\n'.format(self.server, self.port, self.username)
         post_message(message)
 
     def do_port(self, line):
@@ -124,6 +123,7 @@ class ReceiveThread(threading.Thread):
         self.client = chat_client
 
     def run(self):
+        time.sleep(.1)
         while self.cmd.connect:
             message = self.client.receive_message()
             if message:
@@ -148,7 +148,7 @@ class ReceiveThread(threading.Thread):
                 elif tag == 'error':
                     self.error_message(message)
                 elif tag == 'shutdown':
-                    post_message('Server had shutdown.\n')
+                    post_message('Server has shutdown.\n')
                     self.client.disconnect()
                     self.cmd.connect = False
             else:
@@ -156,28 +156,35 @@ class ReceiveThread(threading.Thread):
                 self.cmd.connect = False
                 post_message('Lost connection to server.\n')
 
-    @staticmethod
-    def username_list(message):
-        extras, message = split_message(message)
-        split = message.strip().split()
-        extras = int(split[0])
-        usernames = split[1:]
+    def username_list(self, message):
+        print(message)
+        extras, usernames = split_message(message)
+        extras = int(extras)
+        usernames = usernames.split()
         if extras == 0:
-            message = ', '.join(usernames[:-1])
-            message_format = 'The connected users are {0}, and {1}.\n'
+            if len(usernames) == 1:
+                message = usernames
+                message_format = 'You, {0}, are the only user connected.\n'
+            elif len(usernames) == 2:
+                usernames.remove(self.cmd.username)
+                message = usernames[0]
+                message_format = 'You and {0} are the only users connected.\n'
+            else:
+                message = ', '.join(usernames[:-1])
+                message_format = 'The connected users are {0}, and {1}.\n'
             message = message_format.format(message, usernames[-1])
         else:
             message = ', '.join(usernames)
-            message_format = 'The connected users are {0}, and {1} more.\n'
+            message_format = 'The connected users are {0}and {1} more.\n'
             message = message_format.format(message, extras)
         post_message(message)
 
     def error_message(self, message):
         tag, message = split_message(message)
         if tag == 'name_taken':
-            self.client.close()
+            self.client.disconnect()
             self.cmd.connect = False
-            message = 'Username {0} already taken, ust "\\username" to choose a new one'
+            message = 'Username {0} already taken, use "\\username" to choose a new one.\n'
             message.format(self.cmd.username)
             post_message(message)
 

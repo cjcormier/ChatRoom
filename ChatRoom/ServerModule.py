@@ -93,8 +93,11 @@ class ChatServer:
                 message = 'connection {0}'.format(username)
                 self.server_broadcast(message, skip=[client])
             else:
+                message_format = 'Connection at {0} as {1}.\n'
+                message_format += 'Username already taken, disconnecting'
+                print(message_format.format(address, username))
                 data = generate_message_data('name_taken ' + username, 'error')
-                send_data(data, client)
+                send_data(data, [client])
                 client.close()
         else:
             client.close()
@@ -160,7 +163,6 @@ class ChatServer:
 
 
 def send_data(data, recipients):
-    print(data.decode())
     if data is not None:
         for connection in recipients:
             connection.send(data)
@@ -173,5 +175,5 @@ def generate_message_data(message, message_type, sender=None, *args):
         return '{0}'.format(message).encode()
     elif message_type == 'username':
         return 'username {0} {1}'.format(args[0], message).encode()
-    elif message_type == 'user_taken':
+    elif message_type == 'error':
         return 'error {0}'.format(message).encode()
