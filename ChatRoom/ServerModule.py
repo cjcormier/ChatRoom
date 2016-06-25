@@ -19,8 +19,11 @@ class ChatServerCMD(cmd.Cmd):
         self.chat_server = chat_server
         self.receive_thread = CheckSocketsThread(self, self.chat_server)
 
+    def do_close(self):
+        self.chat_server.close()
+
     def postcmd(self, line, stop):
-        print(line)
+        pass
 
     def preloop(self):
         self.done = False
@@ -60,6 +63,13 @@ class ChatServer:
         self.ACTIVE_SOCKETS = {self.server_sock: 'Server'}
         print('Server started on port {0}'.format(port))
 
+    def close(self):
+        for connection in self.ACTIVE_SOCKETS:
+            if connection is not self.server_sock:
+                message = 'shutdown'
+                send_data(message.encode(),connection)
+            self.disconnect(connection, suppress=True)
+
     def check_sockets(self):
         to_read = list(self.ACTIVE_SOCKETS)
         read, write, err = select.select(to_read, [], [], 0)
@@ -80,10 +90,15 @@ class ChatServer:
         read1, write1, err1 = select.select([client], [], [], .1)
         if client in read1:
             username = client.recv(2 ** 16).decode().strip()
-            self.ACTIVE_SOCKETS[client] = username
-            print('Connection at {0} as {1}'.format(address, username))
-            message = 'connection {0}'.format(username)
-            self.server_broadcast(message, skip=[client])
+            if username not in self.ACTIVE_SOCKETS.values():
+                self.ACTIVE_SOCKETS[client] = username
+                print('Connection at {0} as {1}'.format(address, username))
+                message = 'connection {0}'.format(username)
+                self.server_broadcast(message, skip=[client])
+            else:
+                data = generate_message_data('name_taken ' + username, 'error')
+                send_data(data, client)
+                client.close()
         else:
             client.close()
             print('Attempted Connection at {0}'.format(address))
@@ -111,9 +126,10 @@ class ChatServer:
         else:
             self.disconnect(connection)
 
-    def disconnect(self, connection):
+    def disconnect(self, connection, suppress=False):
         connection.close()
-        self.disconnect_message(connection)
+        if not suppress:
+            self.disconnect_message(connection)
 
     def disconnect_message(self, connection):
         if connection in self.ACTIVE_SOCKETS:
@@ -159,3 +175,5 @@ def generate_message_data(message, message_type, sender=None, *args):
         return '{0}'.format(message).encode()
     elif message_type == 'username':
         return 'username {0} {1}'.format(args[0], message).encode()
+    elif message_type == 'user_taken':
+        return 'error {0}'.format(message)
