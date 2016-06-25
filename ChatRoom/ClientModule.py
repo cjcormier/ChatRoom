@@ -56,10 +56,16 @@ class ChatClientCMD(cmd.Cmd):
 
     def do_connect(self, line):
         if not self.connect:
-            self.chat_client = ChatClient(self.server, self.port, self.username)
-            self.connect = True
-            self.receive_thread = ReceiveThread(self, self.chat_client)
-            self.receive_thread.start()
+            try:
+                self.chat_client = ChatClient(self.server, self.port, self.username)
+            except ConnectionRefusedError:
+                message_format = 'Connection to {0}:{1} refused. Unable to connect\n'
+                message = message_format.format(self.server, self.port)
+                post_message(message)
+            else:
+                self.connect = True
+                self.receive_thread = ReceiveThread(self, self.chat_client)
+                self.receive_thread.start()
         else:
             self.yes_server()
 
@@ -87,7 +93,7 @@ class ChatClientCMD(cmd.Cmd):
         else:
             self.yes_server()
 
-    def do_serverinfo(self,line):
+    def do_serverinfo(self, line):
         message = 'Connected to {0}:{1} as {2}\n'.format(self.server, self.port, self.username)
         post_message(message)
 
@@ -97,6 +103,13 @@ class ChatClientCMD(cmd.Cmd):
             self.port = int(split[0])
         else:
             self.yes_server()
+
+    def do_whisper(self, line):
+        if self.connect:
+            message = 'whisper ' + line
+            self.chat_client.send_message(message)
+        else:
+            self.no_server()
 
     def do_username(self, line):
         if not self.connect:
@@ -151,6 +164,11 @@ class ReceiveThread(threading.Thread):
                     post_message('Server has shutdown.\n')
                     self.client.disconnect()
                     self.cmd.connect = False
+                elif tag == 'whisper':
+                    username, message = split_message(message)
+                    message_format = '[{0}] whispers :{1}'
+                    message = message_format.format(username, message)
+                    post_message(message)
             else:
                 self.client.disconnect()
                 self.cmd.connect = False
@@ -187,7 +205,6 @@ class ReceiveThread(threading.Thread):
             message = 'Username {0} already taken, use "\\username" to choose a new one.\n'
             message.format(self.cmd.username)
             post_message(message)
-
 
 
 def split_message(message):
