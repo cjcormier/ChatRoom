@@ -118,13 +118,17 @@ class ChatServer:
                 self.username_request(connection)
             elif tag == 'whisper':
                 username, message = split_message(message)
+                if message is None or username is None:
+                    return none
                 recipient = [k for k, v in self.ACTIVE_SOCKETS.items() if v == username]
                 if len(recipient) == 1:
                     data = generate_message_data(message, 'whisper', name)
                     send_data(data, recipient)
                 else:
-                    message = 'Unable to whisper, user {0} not found'
+                    message_format = 'no_name_whisper {0}'
+                    message = message_format.format(username)
                     data = generate_message_data(message, 'error')
+                    print(message)
                     send_data(data, connection)
         else:
             self.disconnect(connection)
@@ -167,7 +171,9 @@ class ChatServer:
 
 def split_message(message):
     split = message.strip().split(sep=None, maxsplit=1)
-    if len(split) < 2:
+    if len(split) == 0:
+        return '', ''
+    elif len(split) == 1:
         return split[0], ''
     else:
         return split[0], split[1]
@@ -175,8 +181,11 @@ def split_message(message):
 
 def send_data(data, recipients):
     if data is not None:
-        for connection in recipients:
-            connection.send(data)
+        try:
+            for connection in recipients:
+                connection.send(data)
+        except TypeError:
+            recipients.send(data)
 
 
 def generate_message_data(message, message_type, sender=None, *args):
@@ -189,4 +198,4 @@ def generate_message_data(message, message_type, sender=None, *args):
     elif message_type == 'error':
         return 'error {0}'.format(message).encode()
     elif message_type == 'whisper':
-        return 'whisper {0} {1}'.format(sender, message)
+        return 'whisper {0} {1}'.format(sender, message).encode()

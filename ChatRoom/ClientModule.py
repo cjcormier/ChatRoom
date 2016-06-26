@@ -9,7 +9,6 @@ from socket import *  # import *, but we'll avoid name conflict
 
 
 class ChatClientCMD(cmd.Cmd):
-    intro = 'Welcome to the chat client.'
     prompt = '[Me] '
     file = None
     done = True
@@ -30,7 +29,7 @@ class ChatClientCMD(cmd.Cmd):
         if verbose:
             message += 'Use "\\connect" to connect to one or "\\help" to to list commands'
         message += '\n'
-        post_message(message)
+        post_message(message, True)
 
     @staticmethod
     def yes_server(verbose=True):
@@ -38,7 +37,7 @@ class ChatClientCMD(cmd.Cmd):
         if verbose:
             message += 'Use "\\disconnect" to disconnect or "\\help" to to list commands.'
         message += '\n'
-        post_message(message)
+        post_message(message, True)
 
     def do_message(self, line):
         if self.connect:
@@ -59,9 +58,9 @@ class ChatClientCMD(cmd.Cmd):
             try:
                 self.chat_client = ChatClient(self.server, self.port, self.username)
             except ConnectionRefusedError:
-                message_format = 'Connection to {0}:{1} refused. Unable to connect\n'
+                message_format = 'ERROR: Connection to {0}:{1} refused. Unable to connect\n'
                 message = message_format.format(self.server, self.port)
-                post_message(message)
+                post_message(message, True)
             else:
                 self.connect = True
                 self.receive_thread = ReceiveThread(self, self.chat_client)
@@ -126,6 +125,7 @@ class ChatClientCMD(cmd.Cmd):
         return line
 
     def preloop(self):
+        post_message('Welcome to the chat client.', True)
         self.do_connect(None)
 
 
@@ -166,7 +166,7 @@ class ReceiveThread(threading.Thread):
                     self.cmd.connect = False
                 elif tag == 'whisper':
                     username, message = split_message(message)
-                    message_format = '[{0}] whispers :{1}'
+                    message_format = '[{0}] whispers: {1}\n'
                     message = message_format.format(username, message)
                     post_message(message)
             else:
@@ -175,7 +175,6 @@ class ReceiveThread(threading.Thread):
                 post_message('Lost connection to server.\n')
 
     def username_list(self, message):
-        print(message)
         extras, usernames = split_message(message)
         extras = int(extras)
         usernames = usernames.split()
@@ -202,10 +201,14 @@ class ReceiveThread(threading.Thread):
         if tag == 'name_taken':
             self.client.disconnect()
             self.cmd.connect = False
-            message = 'Username {0} already taken, use "\\username" to choose a new one.\n'
-            message.format(self.cmd.username)
+            message_format = 'ERROR: Username {0} already taken, use "\\username" to choose a new one.\n'
+            message = message_format.format(self.cmd.username)
             post_message(message)
-
+        elif tag == 'no_name_whisper':
+            message_format = 'ERROR: Unable to whisper, user {0} not found.\n'
+            message = message_format.format(message)
+            post_message(message)
+            
 
 def split_message(message):
     split = message.strip().split(sep=None, maxsplit=1)
@@ -215,11 +218,12 @@ def split_message(message):
         return split[0], split[1]
 
 
-def post_message(message):
+def post_message(message, from_cmd=False):
     temp = readline.get_line_buffer()
     sys.stdout.write('\r'+' '*(len(temp)+5)+'\r')
     sys.stdout.write(message)
-    sys.stdout.write('[Me] '+temp)
+    if not from_cmd:
+        sys.stdout.write('[Me] ' + temp)
     sys.stdout.flush()
 
 
