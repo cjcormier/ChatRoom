@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import readline
 import threading
 import time
 import cmd
@@ -12,9 +11,9 @@ class ChatServerCMD(cmd.Cmd):
     file = None
     done = True
 
-    def __init__(self, chat_server):
+    def __init__(self, port):
         cmd.Cmd.__init__(self)
-        self.chat_server = chat_server
+        self.chat_server = ChatServer(port)
         self.receive_thread = CheckSocketsThread(self, self.chat_server)
 
     def do_close(self, line):
@@ -36,14 +35,6 @@ class CheckSocketsThread(threading.Thread):
         self.server_cmd = server_cmd
 
     def run(self):
-        first = True
+        time.sleep(.1)
         while not self.server_cmd.done:
-            temp = readline.get_line_buffer()
-            sys.stdout.write('\r' + ' ' * (len(temp) + 2) + '\r')
             self.server.check_sockets()
-            if first:
-                first = False
-            else:
-                sys.stdout.write('> ' + temp)
-            sys.stdout.flush()
-            time.sleep(.1)
