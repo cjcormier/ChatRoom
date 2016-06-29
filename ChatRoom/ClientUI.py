@@ -106,8 +106,14 @@ class ChatClientCMD(cmd.Cmd):
 
     def do_serverinfo(self, line):
         """Displays the server information to the user."""
-        message = 'Connected to {0}:{1} as {2}\n'.format(self.server, self.port, self.username)
-        post_message(message)
+        message_format = 'Current server information to {0}:{1} as {2}\n'
+        message = message_format.format(self.server, self.port, self.username)
+        post_message(message, True)
+        if self.connect:
+            message = 'You are currently connected to this server.\n'
+        else:
+            message = 'You are not currently connected to this server.\n'
+        post_message(message, True)
 
     def do_port(self, line):
         """"Changes the port to the given port."""
