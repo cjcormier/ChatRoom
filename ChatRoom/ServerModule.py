@@ -10,9 +10,8 @@ class ChatServer:
         self.server_sock.bind(('', port))
 
         self.server_sock.listen(5)
-
         self.ACTIVE_SOCKETS = {self.server_sock: 'Server'}
-        post_message('Server started on port {0}'.format(port))
+        post_message('>  ', 'Server started on port {0}\n'.format(port))
 
     def close(self):
         """Disconnects from all connections and closes server."""
@@ -35,7 +34,7 @@ class ChatServer:
                 else:
                     self.read_message(connection)
             except ConnectionResetError:
-                post_message('Connection Reset')
+                post_message('>  ', 'Connection Reset\n')
                 self.disconnect_message(connection)
 
     def accept_connection(self, connection):
@@ -46,20 +45,20 @@ class ChatServer:
             username = client.recv(2 ** 16).decode().strip()
             if username not in self.ACTIVE_SOCKETS.values():
                 self.ACTIVE_SOCKETS[client] = username
-                post_message('Connection at {0} as {1}'.format(address, username))
+                post_message('>  ', 'Connection at {0} as {1}\n'.format(address, username))
                 message = 'connection {0}'.format(username)
                 self.server_broadcast(message, skip=[client])
             else:
                 message_format = 'Connection at {0} as {1}.\n'
-                message_format += 'Username already taken, disconnecting'
-                post_message(message_format.format(address, username))
+                message_format += 'Username already taken, disconnecting\n'
+                post_message('>  ', message_format.format(address, username))
                 data = generate_message_data('name_taken ' + username, 'error')
                 send_data(data, [client])
                 client.close()
         else:
             client.close()
-            post_message('Attempted Connection at {0}'.format(address))
-            post_message('No username, disconnecting.')
+            post_message('>  ', 'Attempted Connection at {0}\n'.format(address))
+            post_message('>  ', 'No username, disconnecting.\n')
 
     def read_message(self, connection):
         """Reads and processes a message send by a user."""
@@ -68,7 +67,7 @@ class ChatServer:
             name = self.ACTIVE_SOCKETS[connection]
             message = data.decode().strip()
             tag, message = split_message(message)
-            post_message('[{0}] <{1}> {2}'.format(name, tag, message))
+            post_message('>  ', '[{0}] <{1}> {2}\n'.format(name, tag, message))
                 
             if tag == 'message':
                 self.user_message(message, connection)
@@ -83,10 +82,10 @@ class ChatServer:
                     data = generate_message_data(message, 'whisper', name)
                     send_data(data, recipient)
                 else:
-                    message_format = 'no_name_whisper {0}'
+                    message_format = 'no_name_whisper {0}\n'
                     message = message_format.format(username)
                     data = generate_message_data(message, 'error')
-                    post_message(message)
+                    post_message('>  ', message)
                     send_data(data, connection)
         else:
             self.disconnect(connection)
@@ -101,8 +100,8 @@ class ChatServer:
         """Sends a message that a user disconnected to the remaining users."""
         if connection in self.ACTIVE_SOCKETS:
             name = self.ACTIVE_SOCKETS.pop(connection)
-            message = 'disconnection {0}'.format(name)
-            post_message(message)
+            message = 'disconnection {0}\n'.format(name)
+            post_message('>  ', message)
             self.server_broadcast(message)
 
     def server_broadcast(self, message, skip=list()):

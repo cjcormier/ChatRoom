@@ -41,32 +41,32 @@ class ChatClient:
                     username, message = split_message(message)
                     message_format = '[{0}] said: {1}\n'
                     message = message_format.format(username, message)
-                    post_message(message)
+                    post_message('[Me] ', message)
                 elif tag == 'username':
                     self.username_list(message)
                 elif tag == 'disconnection':
                     message_format = '{0} has disconnected.\n'
                     message = message_format.format(message)
-                    post_message(message)
+                    post_message('[Me] ', message)
                 elif tag == 'connection':
                     message_format = '{0} has connected.\n'
                     message = message_format.format(message)
-                    post_message(message)
+                    post_message('[Me] ', message)
                 elif tag == 'error':
                     self.error_message(message)
                 elif tag == 'shutdown':
 
-                    post_message('Server has shutdown.\n')
+                    post_message('[Me] ', 'Server has shutdown.\n')
                     self.disconnect()
                     return'disconnect'
                 elif tag == 'whisper':
                     username, message = split_message(message)
                     message_format = '[{0}] whispers: {1}\n'
                     message = message_format.format(username, message)
-                    post_message(message)
+                    post_message('[Me] ', message)
         else:
             self.disconnect()
-            post_message('Lost connection to server.\n')
+            post_message('[Me] ', 'Lost connection to server.\n')
             return True
 
     def username_list(self, message):
@@ -90,7 +90,7 @@ class ChatClient:
             message = ', '.join(usernames)
             message_format = 'The connected users are {0}and {1} more.\n'
             message = message_format.format(message, extras)
-        post_message(message)
+        post_message('[Me] ', message)
 
     def error_message(self, message):
         """"Displays the error message sent from the server to the user."""
@@ -100,12 +100,12 @@ class ChatClient:
             message_format = 'ERROR: Username {0} already taken, use ' \
                              '"\\username" to choose a new one.\n'
             message = message_format.format(self.username)
-            post_message(message)
+            post_message('[Me] ', message)
             return 'disconnect'
         elif tag == 'no_name_whisper':
             message_format = 'ERROR: Unable to whisper, user {0} not found.\n'
             message = message_format.format(message)
-            post_message(message)
+            post_message('[Me] ', message)
 
     def disconnect(self):
         """Disconnects from the server."""

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 
-from ChatRoom.ClientModule import *
+from ChatRoom.ClientUI import *
 
 parser = argparse.ArgumentParser(description='Chat room client')
 parser.add_argument('--server', help='ip of the chat room server')
