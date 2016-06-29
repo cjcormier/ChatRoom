@@ -30,7 +30,7 @@ class ChatClientCMD(cmd.Cmd):
             message += 'Use "\\connect" to connect to one or ' \
                        '"\\help" to to list commands'
         message += '\n'
-        post_message('[Me] ', message)
+        post_message('[Me] ', message, True)
 
     @staticmethod
     def yes_server(verbose=True):
@@ -42,7 +42,7 @@ class ChatClientCMD(cmd.Cmd):
             message += 'Use "\\disconnect" to disconnect or ' \
                        '"\\help" to to list commands.'
         message += '\n'
-        post_message('[Me] ', message)
+        post_message('[Me] ', message, True)
 
     def do_message(self, line):
         """Sends a message to the server that the other users can see."""
@@ -68,7 +68,7 @@ class ChatClientCMD(cmd.Cmd):
             except ConnectionRefusedError:
                 message_format = 'ERROR: Connection to {0}:{1} refused. Unable to connect\n'
                 message = message_format.format(self.server, self.port)
-                post_message('[Me] ', message)
+                post_message('[Me] ', message, True)
             else:
                 self.connect = True
                 self.receive_thread = ReceiveThread(self, self.chat_client)
@@ -107,12 +107,12 @@ class ChatClientCMD(cmd.Cmd):
         """Displays the server information to the user."""
         message_format = 'Current server information to {0}:{1} as {2}\n'
         message = message_format.format(self.server, self.port, self.username)
-        post_message('[Me] ', message)
+        post_message('[Me] ', message, True)
         if self.connect:
             message = 'You are currently connected to this server.\n'
         else:
             message = 'You are not currently connected to this server.\n'
-        post_message('[Me] ', message)
+        post_message('[Me] ', message, True)
 
     def do_port(self, line):
         """"Changes the port to the given port."""
