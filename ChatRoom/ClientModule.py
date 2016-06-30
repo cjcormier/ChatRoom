@@ -7,6 +7,7 @@ from socket import *  # import *, but we'll avoid name conflict
 class ChatClient:
     def __init__(self, server, port, username):
         self.sock = socket(AF_INET, SOCK_STREAM)
+        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.sock.connect((server, port))
         self.sock.send(username.encode())
         self.username = username
@@ -53,9 +54,8 @@ class ChatClient:
                     message = message_format.format(message)
                     post_message('[Me] ', message)
                 elif tag == 'error':
-                    self.error_message(message)
+                    return self.error_message(message)
                 elif tag == 'shutdown':
-
                     post_message('[Me] ', 'Server has shutdown.\n')
                     self.disconnect()
                     return'disconnect'
@@ -64,10 +64,10 @@ class ChatClient:
                     message_format = '[{0}] whispers: {1}\n'
                     message = message_format.format(username, message)
                     post_message('[Me] ', message)
-        else:
-            self.disconnect()
-            post_message('[Me] ', 'Lost connection to server.\n')
-            return True
+            else:
+                self.disconnect()
+                post_message('[Me] ', 'Lost connection to server.\n')
+                return True
 
     def username_list(self, message):
         """"Displays the username list sent from the server to the user."""
@@ -76,8 +76,8 @@ class ChatClient:
         usernames = usernames.split()
         if extras == 0:
             if len(usernames) == 1:
-                message = usernames
-                message_format = 'You, {0}, are the only user connected.\n'
+                message = usernames[0]
+                message_format = 'You, "{0}", are the only user connected.\n'
             elif len(usernames) == 2:
                 usernames.remove(self.username)
                 message = usernames[0]
@@ -88,11 +88,14 @@ class ChatClient:
             message = message_format.format(message, usernames[-1])
         else:
             if len(usernames) == 0:
-                message_format = 'There are {0} users currently connected'
+                message_format = 'There are {0} users currently connected\n'
                 message = message_format.format(extras)
             else:
+                if len(usernames) == 1:
+                    message_format = 'The connected users are {0} and {1} more.\n'
+                else:
+                    message_format = 'The connected users are {0}, and {1} more.\n'
                 message = ', '.join(usernames)
-                message_format = 'The connected users are {0}and {1} more.\n'
                 message = message_format.format(message, extras)
         post_message('[Me] ', message)
 
@@ -113,7 +116,9 @@ class ChatClient:
 
     def disconnect(self):
         """Disconnects from the server."""
-        self.sock.close()
+        if self.sock:
+            self.sock.shutdown(SHUT_RDWR)
+            self.sock.close()
         self.sock = None
 
 

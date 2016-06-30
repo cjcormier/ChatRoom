@@ -18,12 +18,13 @@ class ChatServerCMD(cmd.Cmd):
 
     def do_close(self, line):
         self.done = True
-        post_message('> ', 'Closing Server\n')
+        post_message('> ', 'Closing Server\n', True)
+        time.sleep(.1)
         self.chat_server.close()
         return True
 
     def preloop(self):
-        post_message('>', 'Welcome to the chat Server.\n')
+        post_message('> ', 'Welcome to the chat Server.\n', True)
         self.done = False
         self.receive_thread.start()
 

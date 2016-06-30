@@ -27,7 +27,7 @@ class ChatClientCMD(cmd.Cmd):
         """
         message = 'You are not connected to a server.'
         if verbose:
-            message += 'Use "\\connect" to connect to one or ' \
+            message += ' Use "\\connect" to connect to one or ' \
                        '"\\help" to to list commands'
         message += '\n'
         post_message('[Me] ', message, True)
@@ -39,7 +39,7 @@ class ChatClientCMD(cmd.Cmd):
         """
         message = 'You are already connected to a server.'
         if verbose:
-            message += 'Use "\\disconnect" to disconnect or ' \
+            message += ' Use "\\disconnect" to disconnect or ' \
                        '"\\help" to to list commands.'
         message += '\n'
         post_message('[Me] ', message, True)
@@ -53,9 +53,9 @@ class ChatClientCMD(cmd.Cmd):
             self.no_server()
 
     def do_listusers(self, line):
-        """Requests a list of users fromt the server."""
+        """Requests a list of users from the server."""
         if self.connect:
-            message = 'username ' + line
+            message = 'username ' + line.strip()
             self.chat_client.send_message(message)
         else:
             self.no_server()
@@ -77,7 +77,7 @@ class ChatClientCMD(cmd.Cmd):
             self.yes_server()
 
     def do_disconnect(self, line):
-        """Disconnects from the given server"""
+        """Disconnects from the server."""
         if self.connect:
             self.connect = False
             time.sleep(.1)
@@ -86,7 +86,7 @@ class ChatClientCMD(cmd.Cmd):
             self.no_server()
 
     def do_close(self, line):
-        """Disconnects from the server if connected, then shuts down the client."""
+        """Disconnects from the server, then shuts down the client."""
         if self.connect:
             self.connect = False
             time.sleep(.1)
@@ -96,7 +96,7 @@ class ChatClientCMD(cmd.Cmd):
             return True
 
     def do_server(self, line):
-        """Sets the server'a address to the given address."""
+        """Sets the server's address to the given address."""
         if not self.connect:
             split = line.split()
             self.server = split[0]
@@ -115,7 +115,7 @@ class ChatClientCMD(cmd.Cmd):
         post_message('[Me] ', message, True)
 
     def do_port(self, line):
-        """"Changes the port to the given port."""
+        """Changes the port to the given port."""
         if not self.connect:
             split = line.split()
             self.port = int(split[0])
@@ -123,7 +123,7 @@ class ChatClientCMD(cmd.Cmd):
             self.yes_server()
 
     def do_whisper(self, line):
-        """Sends a message to the given user that only they can see."""
+        """Sends a message to a given user that only they can see."""
         if self.connect:
             message = 'whisper ' + line
             self.chat_client.send_message(message)
@@ -146,7 +146,7 @@ class ChatClientCMD(cmd.Cmd):
         return line
 
     def preloop(self):
-        post_message('', 'Welcome to the chat client.')
+        post_message('[Me] ', 'Welcome to the chat client.\n', True)
         self.do_connect(None)
 
 

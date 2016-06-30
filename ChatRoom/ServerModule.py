@@ -7,11 +7,13 @@ from socket import *
 class ChatServer:
     def __init__(self, port):
         self.server_sock = socket(AF_INET, SOCK_STREAM)
+        
+        self.server_sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.server_sock.bind(('', port))
 
         self.server_sock.listen(5)
         self.ACTIVE_SOCKETS = {self.server_sock: 'Server'}
-        post_message('>  ', 'Server started on port {0}\n'.format(port))
+        post_message('> ', 'Server started on port {0}\n'.format(port))
 
     def close(self):
         """Disconnects from all connections and closes server."""
@@ -24,6 +26,7 @@ class ChatServer:
     def check_sockets(self):
         """Checks sockets for new messages."""
         to_read = list(self.ACTIVE_SOCKETS)
+        
         read, write, err = select.select(to_read, [], [], 0)
         for connection in read:
             if connection is sys.stdin:
@@ -34,7 +37,7 @@ class ChatServer:
                 else:
                     self.read_message(connection)
             except ConnectionResetError:
-                post_message('>  ', 'Connection Reset\n')
+                post_message('> ', 'Connection Reset\n')
                 self.disconnect_message(connection)
 
     def accept_connection(self, connection):
@@ -45,20 +48,20 @@ class ChatServer:
             username = client.recv(2 ** 16).decode().strip()
             if username not in self.ACTIVE_SOCKETS.values():
                 self.ACTIVE_SOCKETS[client] = username
-                post_message('>  ', 'Connection at {0} as {1}\n'.format(address, username))
+                post_message('> ', 'Connection at {0} as {1}\n'.format(address, username))
                 message = 'connection {0}'.format(username)
                 self.server_broadcast(message, skip=[client])
             else:
                 message_format = 'Connection at {0} as {1}.\n'
                 message_format += 'Username already taken, disconnecting\n'
-                post_message('>  ', message_format.format(address, username))
+                post_message('> ', message_format.format(address, username))
                 data = generate_message_data('name_taken ' + username, 'error')
                 send_data(data, [client])
                 client.close()
         else:
             client.close()
-            post_message('>  ', 'Attempted Connection at {0}\n'.format(address))
-            post_message('>  ', 'No username, disconnecting.\n')
+            post_message('> ', 'Attempted Connection at {0}\n'.format(address))
+            post_message('> ', 'No username, disconnecting.\n')
 
     def read_message(self, connection):
         """Reads and processes a message send by a user."""
@@ -67,7 +70,7 @@ class ChatServer:
             name = self.ACTIVE_SOCKETS[connection]
             message = data.decode().strip()
             tag, message = split_message(message)
-            post_message('>  ', '[{0}] <{1}> {2}\n'.format(name, tag, message))
+            post_message('> ', '[{0}] <{1}> {2}\n'.format(name, tag, message))
                 
             if tag == 'message':
                 self.user_message(message, connection)
@@ -86,23 +89,26 @@ class ChatServer:
                     message_format = 'no_name_whisper {0}\n'
                     message = message_format.format(username)
                     data = generate_message_data(message, 'error')
-                    post_message('>  ', message)
+                    post_message('> ', message)
                     send_data(data, connection)
         else:
             self.disconnect(connection)
 
     def disconnect(self, connection, suppress=False):
         """Disconnects a user from the server."""
+        connection.shutdown(SHUT_RDWR)
         connection.close()
         if not suppress:
             self.disconnect_message(connection)
+        if connection in self.ACTIVE_SOCKETS:
+            self.ACTIVE_SOCKETS[connection] = None
 
     def disconnect_message(self, connection):
         """Sends a message that a user disconnected to the remaining users."""
         if connection in self.ACTIVE_SOCKETS:
             name = self.ACTIVE_SOCKETS.pop(connection)
             message = 'disconnection {0}\n'.format(name)
-            post_message('>  ', message)
+            post_message('> ', message)
             self.server_broadcast(message)
 
     def server_broadcast(self, message, skip=list()):
@@ -122,15 +128,22 @@ class ChatServer:
 
     def username_request(self, max_users, sender_sock):
         """Sends a list of usernames to the requesting user."""
+
         user_list = list(self.ACTIVE_SOCKETS.values())
         user_list.remove('Server')
         user_list_len = len(user_list)
+        try:
+            max_users = int(max_users)
+        except:
+            max_users = 5
 
         if max_users == 0:
             user_list = []
             len_diff = user_list_len
+        elif max_users < 0:
+            len_diff = 0
         else:
-            user_list = user_list[:10]
+            user_list = user_list[:max_users]
             len_diff = user_list_len - len(user_list)
         message = ' '.join(user_list)
         data = generate_message_data(message, 'username', None, len_diff)
