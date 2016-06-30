@@ -72,7 +72,8 @@ class ChatServer:
             if tag == 'message':
                 self.user_message(message, connection)
             elif tag == 'username':
-                self.username_request(connection)
+                max_users, message = split_message(message)
+                self.username_request(max_users, connection)
             elif tag == 'whisper':
                 username, message = split_message(message)
                 if message is None or username is None:
@@ -119,13 +120,18 @@ class ChatServer:
         recipients = [x for x in self.ACTIVE_SOCKETS if x not in skip]
         send_data(data, recipients)
 
-    def username_request(self, sender_sock):
+    def username_request(self, max_users, sender_sock):
         """Sends a list of usernames to the requesting user."""
         user_list = list(self.ACTIVE_SOCKETS.values())
         user_list.remove('Server')
         user_list_len = len(user_list)
-        user_list = user_list[:10]
-        len_diff = user_list_len - len(user_list)
+
+        if max_users == 0:
+            user_list = []
+            len_diff = user_list_len
+        else:
+            user_list = user_list[:10]
+            len_diff = user_list_len - len(user_list)
         message = ' '.join(user_list)
         data = generate_message_data(message, 'username', None, len_diff)
         send_data(data, [sender_sock])

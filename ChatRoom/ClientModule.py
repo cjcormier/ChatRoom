@@ -87,9 +87,13 @@ class ChatClient:
                 message_format = 'The connected users are {0}, and {1}.\n'
             message = message_format.format(message, usernames[-1])
         else:
-            message = ', '.join(usernames)
-            message_format = 'The connected users are {0}and {1} more.\n'
-            message = message_format.format(message, extras)
+            if len(usernames) == 0:
+                message_format = 'There are {0} users currently connected'
+                message = message_format.format(extras)
+            else:
+                message = ', '.join(usernames)
+                message_format = 'The connected users are {0}and {1} more.\n'
+                message = message_format.format(message, extras)
         post_message('[Me] ', message)
 
     def error_message(self, message):
