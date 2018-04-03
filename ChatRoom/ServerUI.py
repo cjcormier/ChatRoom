@@ -17,6 +17,7 @@ class ChatServerCMD(cmd.Cmd):
         self.receive_thread = CheckSocketsThread(self, self.chat_server)
 
     def do_close(self, line):
+        "Closes the server"
         self.done = True
         post_message('> ', 'Closing Server\n', True)
         time.sleep(.1)

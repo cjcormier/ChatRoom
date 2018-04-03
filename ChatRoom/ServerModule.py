@@ -3,7 +3,6 @@ import select
 from .PostMessage import *
 from socket import *
 
-
 class ChatServer:
     def __init__(self, port):
         self.server_sock = socket(AF_INET, SOCK_STREAM)
@@ -96,7 +95,6 @@ class ChatServer:
 
     def disconnect(self, connection, suppress=False):
         """Disconnects a user from the server."""
-        connection.shutdown(SHUT_RDWR)
         connection.close()
         if not suppress:
             self.disconnect_message(connection)
