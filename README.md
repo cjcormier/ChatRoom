@@ -9,5 +9,5 @@ sending and receiving messages from the connection. The UI is implemented using 
 [socket library](https://docs.python.org/3/library/socket.html). After starting the program, type help (or \help for the client) to 
 display help dialog.
 
-This project requires readline, if you are on windows please install ()[], 
-if you are on OSX install (gnureadline)[https://pypi.python.org/pypi/gnureadline]
+This project requires readline, if you are on windows please install (pyreadline)[https://pypi.python.org/pypi/pyreadline], 
+if you are on OSX install [gnureadline](https://pypi.python.org/pypi/gnureadline).
